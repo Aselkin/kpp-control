@@ -1,3 +1,4 @@
+import javafx.collections.transformation.SortedList;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -10,8 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 
 /**
  * Created by Асюша on 26.06.2016.
@@ -22,7 +22,7 @@ public class InControl {
         FileInputStream fileList = new FileInputStream(new File("List.xlsx"));
         XSSFWorkbook wbList = new XSSFWorkbook(fileList);
 
-        ArrayList<Path> fileDate = getFileList();
+        Set<Path> fileDate = getFileList();
 
         for (Path path : fileDate) {
             FileInputStream fileKPP = new FileInputStream(path.toFile());
@@ -64,11 +64,19 @@ public class InControl {
 
                         String sheetName = getSheetName(path);
                         XSSFSheet monthSheet = wbList.getSheet(sheetName);
-                        if (monthSheet == null)
+                        if (monthSheet == null) {
                             monthSheet = wbList.createSheet(sheetName);
 
+                            Row headRow  = monthSheet.createRow(0);
+                            headRow.createCell(0).setCellValue("ФИО");
+                            headRow.createCell(1).setCellValue("Время");
+                            for ( int d = 2; d < 33; d++ )
+                                headRow.createCell(d).setCellValue(d - 1);
 
-                        Row monthRow = getExistRow(monthSheet, colFIO.getStringCellValue(), indexRow++);
+                        }
+
+
+                        Row monthRow = getExistRow(monthSheet, colFIO.getStringCellValue(), ++indexRow);
 
                         Cell monthCellFIO = monthRow.createCell(0);
                         monthCellFIO.setCellValue(colFIO.getStringCellValue());
@@ -96,7 +104,7 @@ public class InControl {
     }
 
     private static Row getExistRow(XSSFSheet monthSheet, String findFIO, int indexRow) {
-        for (int indexrow = 0; indexrow < monthSheet.getLastRowNum(); ++indexrow) {
+        for (int indexrow = 1; indexrow < monthSheet.getLastRowNum(); ++indexrow) {
             Row row = monthSheet.getRow(indexrow);
 
             Cell colFIO = row.getCell(0);
@@ -124,8 +132,8 @@ public class InControl {
 
     }
 
-    private static ArrayList<Path> getFileList() throws IOException {
-        ArrayList<Path> fileDate = new ArrayList<>();
+    private static Set<Path> getFileList() throws IOException {
+        Set<Path> fileDate = new TreeSet<>();
         Files.walk(Paths.get(".")).forEach(filePath -> {
             if (Files.isRegularFile(filePath) && filePath.toFile().getAbsolutePath().contains("КПП")) {
                 fileDate.add(filePath);
