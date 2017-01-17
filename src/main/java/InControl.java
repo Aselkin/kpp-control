@@ -1,4 +1,3 @@
-import javafx.collections.transformation.SortedList;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -21,15 +20,16 @@ public class InControl {
 
         FileInputStream fileList = new FileInputStream(new File("List.xlsx"));
         XSSFWorkbook wbList = new XSSFWorkbook(fileList);
+        XSSFSheet sheetList = wbList.getSheetAt(0);
 
         Set<Path> fileDate = getFileList();
 
+        int indexRow = 0;
         for (Path path : fileDate) {
             FileInputStream fileKPP = new FileInputStream(path.toFile());
             XSSFWorkbook wbKPP = new XSSFWorkbook(fileKPP);
             XSSFSheet sheetKPP = wbKPP.getSheetAt(0);
 
-            int indexRow = 0;
             for (int indexkpp = 2; indexkpp < sheetKPP.getLastRowNum(); ++indexkpp) {
                 Row rowKPP = sheetKPP.getRow(indexkpp);
 
@@ -38,7 +38,6 @@ public class InControl {
                 Cell colO = rowKPP.getCell(3);
                 Cell colT = rowKPP.getCell(8);
 
-                XSSFSheet sheetList = wbList.getSheetAt(0);
 
                 for (int indexrow = 1; indexrow < sheetList.getLastRowNum(); ++indexrow) {
 
@@ -51,10 +50,8 @@ public class InControl {
                     if (colFIO == null || colTime == null) continue;
 
                     String cellFIO = colFIO.getStringCellValue();
-                    System.out.println(cellFIO);
 
                     Integer mustTime = tomin(colTime.getStringCellValue());
-                    System.out.println(mustTime);
 
                     if (colFIO.getStringCellValue().replaceAll(" ", "").toUpperCase().equals(
                             (colF.getStringCellValue() +
@@ -62,10 +59,11 @@ public class InControl {
                                     colO.getStringCellValue()).toUpperCase())) {
 
 
-                        String sheetName = getSheetName(path);
+                        String sheetName = getSheetName(rowKPP);
                         XSSFSheet monthSheet = wbList.getSheet(sheetName);
                         if (monthSheet == null) {
                             monthSheet = wbList.createSheet(sheetName);
+                            indexRow = 0;
 
                             Row headRow  = monthSheet.createRow(0);
                             headRow.createCell(0).setCellValue("ФИО");
@@ -75,15 +73,16 @@ public class InControl {
 
                         }
 
-
-                        Row monthRow = getExistRow(monthSheet, colFIO.getStringCellValue(), ++indexRow);
+                        Row monthRow = getExistRow(monthSheet, colFIO.getStringCellValue());
+                        if (monthRow == null)
+                            monthRow = monthSheet.createRow(++indexRow);
 
                         Cell monthCellFIO = monthRow.createCell(0);
                         monthCellFIO.setCellValue(colFIO.getStringCellValue());
 
                         Cell monthCellTime = monthRow.createCell(1);
                         monthCellTime.setCellValue(colTime.getStringCellValue());
-                        Cell monthCellDif = monthRow.createCell(getKPPDay(path) + 1);
+                        Cell monthCellDif = monthRow.createCell(getKPPDay(rowKPP) + 1);
                         Integer difTime = null;
                         try {
                             difTime = tomin(colT.getStringCellValue()) - mustTime;
@@ -103,7 +102,7 @@ public class InControl {
         out.close();
     }
 
-    private static Row getExistRow(XSSFSheet monthSheet, String findFIO, int indexRow) {
+    private static Row getExistRow(XSSFSheet monthSheet, String findFIO) {
         for (int indexrow = 1; indexrow < monthSheet.getLastRowNum(); ++indexrow) {
             Row row = monthSheet.getRow(indexrow);
 
@@ -114,7 +113,7 @@ public class InControl {
             }
 
         }
-        return monthSheet.createRow(indexRow);
+        return null;
     }
 
 
@@ -125,10 +124,9 @@ public class InControl {
 
     }
 
-    private static String getSheetName(Path path) {
-        String fileName = path.toFile().getName();
-        System.out.println(fileName.substring(fileName.length() - 10, fileName.length() - 5));
-        return fileName.substring(fileName.length() - 10, fileName.length() - 5);
+    private static String getSheetName(Row rowKPP) {
+        Cell colF = rowKPP.getCell(0);
+        return colF.getStringCellValue().substring(3);
 
     }
 
@@ -144,10 +142,9 @@ public class InControl {
     }
 
 
-    private static int getKPPDay(Path path) {
-        String fileName = path.toFile().getName();
-        System.out.println(fileName.substring(fileName.length() - 13, fileName.length() - 11));
-        return Integer.valueOf(fileName.substring(fileName.length() - 13, fileName.length() - 11));
+    private static int getKPPDay(Row rowKPP) {
+        Cell colF = rowKPP.getCell(0);
+        return Integer.valueOf(colF.getStringCellValue().substring(0, 2));
 
     }
 }
